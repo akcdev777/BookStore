@@ -43,7 +43,9 @@ public class BookBuyerAgent extends Agent{
                             System.out.println(sellerAgents[i].getName());
                         }
                     } catch (FIPAException e) {
-                        e.printStackTrace();
+                       /// e.printStackTrace();
+                        System.err.println("Error searching for seller agents: " + e.getMessage());
+
                     }
 
                     // Add a behaviour to initiate purchase requests
