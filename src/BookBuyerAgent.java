@@ -76,13 +76,14 @@ public class BookBuyerAgent extends Agent{
 
         @Override
         public void action() {
-            System.out.println("RequestPerformer.action: step=" + step);
+            System.out.println("RequestPerformer: Current step = " + step);
             switch (step) {
                 case 0:
                     // Send CFP (Call for Proposal) to all seller agents found in DF
                     ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
                     for (AID sellerAgent : sellerAgents) {
                         cfp.addReceiver(sellerAgent);
+                        System.out.println("RequestPerformer: Sending CFP to " + sellerAgent.getName());
                     }
                     cfp.setContent(targetBook);  // The book we are looking for
                     cfp.setConversationId("book-trade");
@@ -102,9 +103,11 @@ public class BookBuyerAgent extends Agent{
                         if (reply.getPerformative() == ACLMessage.PROPOSE) {
                             // Seller proposes a price
                             int price = Integer.parseInt(reply.getContent());
+                            System.out.println("RequestPerformer: Received proposal from " + reply.getSender().getName() + " with price: " + price);
                             if (bestSeller == null || price < bestPrice) {
                                 bestPrice = price;
                                 bestSeller = reply.getSender();
+                                System.out.println("RequestPerformer: Best offer so far from " + bestSeller.getName() + " with price: " + bestPrice);
                             }
                         }
                         repliesCount++;
@@ -125,6 +128,7 @@ public class BookBuyerAgent extends Agent{
                     order.setReplyWith("order" + System.currentTimeMillis());
                     myAgent.send(order);
 
+                    System.out.println("RequestPerformer: Accepting proposal from " + bestSeller.getName() + " for " + targetBook);
                     // Prepare template to get the purchase confirmation
                     msgTemplate = MessageTemplate.and(
                             MessageTemplate.MatchConversationId("book-trade"),
@@ -133,10 +137,12 @@ public class BookBuyerAgent extends Agent{
                     break;
                 case 3:
                     // Receive the purchase confirmation
-                    reply = myAgent.receive(msgTemplate);
-                    if (reply != null) {
-                        if (reply.getPerformative() == ACLMessage.INFORM) {
+                    ACLMessage reply1;
+                    reply1 = myAgent.receive(msgTemplate);
+                    if (reply1 != null) {
+                        if (reply1.getPerformative() == ACLMessage.INFORM) {
                             // Purchase successful
+                            System.out.println("RequestPerformer: " + targetBook + " successfully purchased at price " + bestPrice + " from " + bestSeller.getName());
                             System.out.println(targetBook + " successfully purchased at price " + bestPrice + " UAH");
                             myAgent.doDelete();
                         }

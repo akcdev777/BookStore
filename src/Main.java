@@ -36,24 +36,24 @@ public class Main {
         // Launch BookSellerAgent
         System.out.println("Starting BookSellerAgent...");
         // Launch BookSellerAgent with a catalog of books and prices
-        Object[] seller1Args = new Object[]{"Cindarella", "150", "Effective Java", "123"};
-        AgentController seller1 = mainContainer.createNewAgent(
-                "seller1",
-                BookSellerAgent.class.getName(),
-                seller1Args
+        Object[] sellerArgs1 = new Object[]{"Cinderella", "150", "10", "Effective Java", "123", "5"};
+        System.out.println("Starting BookSellerAgent1...");
+        AgentController sellerAgent1 = mainContainer.createNewAgent(
+                "seller1", // Agent name
+                BookSellerAgent.class.getName(), // Agent class name
+                sellerArgs1 // Agent arguments (bookTitle, bookPrice, quantity)
         );
-        seller1.start();
+        sellerAgent1.start(); // Start the seller agent
 
-
-        // Launch BookDistributorAgent
-        // Launch BookSellerAgent with a catalog of books and prices
-        Object[] seller2Args = new Object[]{"John Wick", "150", "Effective Python", "123"};
-        AgentController seller2 = mainContainer.createNewAgent(
-                "seller2",
+        // Optionally, launch another seller agent with a different catalog
+        Object[] sellerArgs2 = new Object[]{"Harry Potter", "200", "3", "Effective Java", "180", "2"};
+        System.out.println("Starting BookSellerAgent2...");
+        AgentController sellerAgent2 = mainContainer.createNewAgent(
+                "seller2", // Another seller agent
                 BookSellerAgent.class.getName(),
-                seller2Args
+                sellerArgs2 // Agent arguments (bookTitle, bookPrice, quantity)
         );
-        seller2.start();
+        sellerAgent2.start(); // Start the second seller agent
 
 
     }

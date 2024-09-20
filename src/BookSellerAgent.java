@@ -11,8 +11,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BookSellerAgent extends Agent {
-    private Map<String, Integer> catalog;
+
     //private BookSellerDialog dialog;
+
+    private class BookInfo{
+        int price;
+        int quantity;
+
+        BookInfo(int price, int quantity){
+            this.price = price;
+            this.quantity = quantity;
+        }
+
+        @Override
+        public String toString(){
+            return "Price: " + price + ", Quantity: " + quantity;
+        }
+    }//end BookInfo
+
+    private Map<String, BookInfo> catalog;
 
     protected void setup() {
         System.out.println("[" + getAID().getName() + "] agent is ready");
@@ -21,13 +38,32 @@ public class BookSellerAgent extends Agent {
 
         Object[] args = getArguments();
         if (args != null && args.length > 0) {
-            for (int i = 0; i < args.length; i += 2) {
-                String bookTitle = (String) args[i];
-                int bookPrice = Integer.parseInt((String) args[i + 1]);
-                catalog.put(bookTitle, bookPrice);
+            if (args.length % 3 != 0) {
+                System.out.println("Invalid number of arguments. Each book should have a title, price, and quantity.");
+                doDelete();
+                return;
             }
-        }else{
+
+            for (int i = 0; i < args.length; i += 3) {
+                String bookTitle = (String) args[i];
+                int bookPrice;
+                int quantity;
+                try {
+                    bookPrice = Integer.parseInt((String) args[i + 1]);
+                    quantity = Integer.parseInt((String) args[i + 2]);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid price or quantity for book: " + bookTitle);
+                    e.printStackTrace();
+                    doDelete();
+                    return;
+                }
+                catalog.put(bookTitle, new BookInfo(bookPrice, quantity));
+                System.out.println("Added to catalog: " + bookTitle + " | Price: " + bookPrice + " | Quantity: " + quantity);
+            }
+        } else {
+            System.out.println("No books provided. Terminating agent.");
             doDelete();
+            return;
         }
 
         DFAgentDescription dfd = new DFAgentDescription();
@@ -37,11 +73,15 @@ public class BookSellerAgent extends Agent {
         sd.setName("JADE-book-trading");
         dfd.addServices(sd);
 
-        try{
+        try {
             DFService.register(this, dfd);
+            System.out.println("[" + getAID().getName() + "] registered successfully with DF");
         } catch (FIPAException e) {
+            System.out.println("[" + getAID().getName() + "] failed to register with DF");
             e.printStackTrace();
         }
+
+        addBehaviour(new OfferRequestsServer());
     }
 
     protected void takeDown() {
@@ -64,26 +104,55 @@ public class BookSellerAgent extends Agent {
             ACLMessage msg = myAgent.receive(mt);
 
             if (msg != null) {
-                // CFP message received. Process it
                 String bookTitle = msg.getContent();
                 ACLMessage reply = msg.createReply();
 
-                // Check if the requested book is available in the catalog
-                Integer price = catalog.get(bookTitle);
-                if (price != null) {
-                    // The book is available. Send a PROPOSE response with the price
-                    reply.setPerformative(ACLMessage.PROPOSE);
-                    reply.setContent(String.valueOf(price));
-                    System.out.println(getAID().getLocalName() + ": Proposing price " + price + " for book " + bookTitle);
-                } else {
-                    // The book is not available. Send a REFUSE response
-                    reply.setPerformative(ACLMessage.REFUSE);
-                    reply.setContent("not-available");
-                    System.out.println(getAID().getLocalName() + ": Book " + bookTitle + " is not available.");
+                switch (msg.getPerformative()) {
+                    case ACLMessage.CFP:
+                        // Handle Call For Proposal (CFP)
+                        BookInfo bookInfo = catalog.get(bookTitle);
+                        if (bookInfo != null && bookInfo.quantity > 0) {
+                            // The requested book is available and in stock
+                            reply.setPerformative(ACLMessage.PROPOSE);
+                            reply.setContent(String.valueOf(bookInfo.price));
+                            System.out.println("[" + getAID().getName() + "] Proposing price " + bookInfo.price + " for book " + bookTitle);
+                        } else {
+                            // The requested book is not available or out of stock
+                            reply.setPerformative(ACLMessage.REFUSE);
+                            reply.setContent("not-available");
+                            System.out.println("[" + getAID().getName() + "] Book " + bookTitle + " not available or out of stock.");
+                        }
+                        break;
+
+                    case ACLMessage.ACCEPT_PROPOSAL:
+                        // Handle ACCEPT_PROPOSAL (purchase confirmation)
+                        bookInfo = catalog.get(bookTitle);
+                        if (bookInfo != null && bookInfo.quantity > 0) {
+                            // Decrease the quantity of the book
+                            bookInfo.quantity--;
+                            reply.setPerformative(ACLMessage.INFORM);
+                            System.out.println("[" + getAID().getName() + "] Book " + bookTitle + " sold to " + msg.getSender().getLocalName() + ". Remaining quantity: " + bookInfo.quantity);
+
+                            // If the quantity reaches 0, consider removing it from the catalog (optional)
+                            if (bookInfo.quantity == 0) {
+                                System.out.println("[" + getAID().getName() + "] Book " + bookTitle + " is now out of stock.");
+                            }
+                        } else {
+                            reply.setPerformative(ACLMessage.FAILURE);
+                            System.out.println("[" + getAID().getName() + "] Failed to sell " + bookTitle + ". Out of stock.");
+                        }
+                        break;
+
+                    default:
+                        // Ignore other message types
+                        block();
+                        return;
                 }
+
+                // Send the reply
                 myAgent.send(reply);
             } else {
-                block(); // Wait for incoming messages
+                block();
             }
         }
     }
