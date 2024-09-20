@@ -147,7 +147,7 @@ public class BookBuyerAgent extends Agent{
         }
 
         @Override
-        public boolean done() {
+        public boolean done() { //complete agent
             return ((step == 2 && bestSeller == null) || step == 4);
         }
     }
