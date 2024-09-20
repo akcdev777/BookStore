@@ -33,11 +33,28 @@ public class Main {
         );
         agentController.start();
 
-        // Optional: Add more agents if necessary
-        // Step 3: Monitoring agents like RMA or sniffer can be added here
+        // Launch BookSellerAgent
+        System.out.println("Starting BookSellerAgent...");
+        // Launch BookSellerAgent with a catalog of books and prices
+        Object[] seller1Args = new Object[]{"Cindarella", "150", "Effective Java", "123"};
+        AgentController seller1 = mainContainer.createNewAgent(
+                "seller1",
+                BookSellerAgent.class.getName(),
+                seller1Args
+        );
+        seller1.start();
 
-        System.out.println("Platform and agent initialized successfully.");
+
+        // Launch BookDistributorAgent
+        // Launch BookSellerAgent with a catalog of books and prices
+        Object[] seller2Args = new Object[]{"John Wick", "150", "Effective Python", "123"};
+        AgentController seller2 = mainContainer.createNewAgent(
+                "seller2",
+                BookSellerAgent.class.getName(),
+                seller2Args
+        );
+        seller2.start();
+
 
     }
-
 }
